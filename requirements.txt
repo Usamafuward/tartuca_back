@@ -10,3 +10,5 @@ python-multipart
 python-jose[cryptography]
 requests
 alembic
+pydantic[email]
+email-validator
