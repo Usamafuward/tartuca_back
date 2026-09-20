@@ -10,7 +10,8 @@ router = APIRouter(
     tags=["gallery"]
 )
 
-@router.get("/", response_model=List[schemas.GalleryImage])
+@router.get("", response_model=List[schemas.GalleryImage])
+@router.get("/", response_model=List[schemas.GalleryImage], include_in_schema=False)
 def read_gallery(db: Session = Depends(database.get_db)):
     return crud.get_gallery_images(db)
 
@@ -28,7 +29,8 @@ def read_gallery_image(img_id: int, db: Session = Depends(database.get_db)):
         
     raise HTTPException(status_code=404, detail="Image not found")
 
-@router.post("/", response_model=schemas.GalleryImage)
+@router.post("", response_model=schemas.GalleryImage)
+@router.post("/", response_model=schemas.GalleryImage, include_in_schema=False)
 def create_gallery_image(
     category: str = Form(...),
     alt_text: str = Form(...),

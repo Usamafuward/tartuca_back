@@ -9,7 +9,8 @@ router = APIRouter(
     tags=["reservations"]
 )
 
-@router.post("/", response_model=schemas.Reservation)
+@router.post("", response_model=schemas.Reservation)
+@router.post("/", response_model=schemas.Reservation, include_in_schema=False)
 def create_reservation(
     reservation: schemas.ReservationCreate, 
     db: Session = Depends(database.get_db), 
@@ -25,7 +26,8 @@ def read_my_reservations(
 ):
     return crud.get_user_reservations(db, user_id=current_user.id, email=current_user.email)
 
-@router.get("/", response_model=List[schemas.Reservation])
+@router.get("", response_model=List[schemas.Reservation])
+@router.get("/", response_model=List[schemas.Reservation], include_in_schema=False)
 def read_reservations(db: Session = Depends(database.get_db)):
     return crud.get_reservations(db)
 

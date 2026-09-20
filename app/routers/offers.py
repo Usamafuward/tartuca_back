@@ -11,7 +11,8 @@ router = APIRouter(
     tags=["special_offers"]
 )
 
-@router.get("/", response_model=List[schemas.SpecialOffer])
+@router.get("", response_model=List[schemas.SpecialOffer])
+@router.get("/", response_model=List[schemas.SpecialOffer], include_in_schema=False)
 def read_special_offers(db: Session = Depends(database.get_db)):
     return crud.get_special_offers(db)
 
@@ -29,7 +30,8 @@ def read_special_offer_image(offer_id: int, db: Session = Depends(database.get_d
         
     raise HTTPException(status_code=404, detail="Image not found")
 
-@router.post("/", response_model=schemas.SpecialOffer)
+@router.post("", response_model=schemas.SpecialOffer)
+@router.post("/", response_model=schemas.SpecialOffer, include_in_schema=False)
 def create_special_offer(
     title: str = Form(...),
     price: Decimal = Form(...),

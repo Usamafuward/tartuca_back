@@ -9,11 +9,13 @@ router = APIRouter(
     tags=["reviews"]
 )
 
-@router.get("/", response_model=List[schemas.Review])
+@router.get("", response_model=List[schemas.Review])
+@router.get("/", response_model=List[schemas.Review], include_in_schema=False)
 def read_reviews(db: Session = Depends(database.get_db)):
     return crud.get_reviews(db, approved_only=True)
 
-@router.post("/", response_model=schemas.Review)
+@router.post("", response_model=schemas.Review)
+@router.post("/", response_model=schemas.Review, include_in_schema=False)
 def create_review(review: schemas.ReviewCreate, db: Session = Depends(database.get_db)):
     return crud.create_review(db, review)
 

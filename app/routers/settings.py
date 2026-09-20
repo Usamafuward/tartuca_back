@@ -8,11 +8,13 @@ router = APIRouter(
     tags=["settings"]
 )
 
-@router.get("/", response_model=schemas.RestaurantSetting)
+@router.get("", response_model=schemas.RestaurantSetting)
+@router.get("/", response_model=schemas.RestaurantSetting, include_in_schema=False)
 def read_settings(db: Session = Depends(database.get_db)):
     return crud.get_restaurant_settings(db)
 
-@router.put("/", response_model=schemas.RestaurantSetting)
+@router.put("", response_model=schemas.RestaurantSetting)
+@router.put("/", response_model=schemas.RestaurantSetting, include_in_schema=False)
 def update_settings(
     settings_update: schemas.RestaurantSettingUpdate,
     db: Session = Depends(database.get_db),

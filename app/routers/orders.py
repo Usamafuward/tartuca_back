@@ -9,7 +9,8 @@ router = APIRouter(
     tags=["orders"]
 )
 
-@router.post("/", response_model=schemas.Order)
+@router.post("", response_model=schemas.Order)
+@router.post("/", response_model=schemas.Order, include_in_schema=False)
 def create_order(order: schemas.OrderCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user_optional)):
     user_id = current_user.id if current_user else None
     return crud.create_order(db, order, user_id=user_id)
@@ -18,7 +19,8 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(database.get_
 def read_my_orders(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     return crud.get_user_orders(db, user_id=current_user.id)
 
-@router.get("/", response_model=List[schemas.Order])
+@router.get("", response_model=List[schemas.Order])
+@router.get("/", response_model=List[schemas.Order], include_in_schema=False)
 def read_orders(db: Session = Depends(database.get_db)):
     # if current_user.role != "admin":
     #      raise HTTPException(status_code=403, detail="Not authorized")
