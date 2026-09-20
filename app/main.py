@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import auth, menu, offers, orders, reservations, reviews, gallery, admin
+from .routers import auth, menu, offers, orders, reservations, reviews, gallery, admin, settings
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -32,6 +32,8 @@ app.include_router(reservations.router)
 app.include_router(reviews.router)
 app.include_router(gallery.router)
 app.include_router(admin.router)
+app.include_router(settings.router)
+
 
 @app.get("/")
 def read_root():

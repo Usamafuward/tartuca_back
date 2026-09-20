@@ -15,6 +15,24 @@ router = APIRouter(
 def read_categories(db: Session = Depends(database.get_db)):
     return crud.get_categories(db)
 
+@router.post("/categories", response_model=schemas.Category)
+def create_category(category: schemas.CategoryCreate, db: Session = Depends(database.get_db)):
+    return crud.create_category(db, category)
+
+@router.put("/categories/{category_id}", response_model=schemas.Category)
+def update_category(category_id: int, category_update: schemas.CategoryUpdate, db: Session = Depends(database.get_db)):
+    cat = crud.update_category(db, category_id, category_update)
+    if not cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return cat
+
+@router.delete("/categories/{category_id}")
+def delete_category(category_id: int, db: Session = Depends(database.get_db)):
+    success = crud.delete_category(db, category_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return {"message": "Category deleted"}
+
 @router.get("/menu-items", response_model=List[schemas.MenuItem])
 def read_menu_items(category_id: int = None, db: Session = Depends(database.get_db)):
     return crud.get_menu_items(db, category_id)

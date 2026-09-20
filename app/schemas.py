@@ -48,6 +48,12 @@ class CategoryBase(BaseModel):
 class CategoryCreate(CategoryBase):
     pass
 
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    image_url: Optional[str] = None
+    display_order: Optional[int] = None
+
 class Category(CategoryBase):
     id: int
     class Config:
@@ -156,6 +162,7 @@ class Order(OrderBase):
 
 # Reservation Schemas
 class ReservationBase(BaseModel):
+    user_id: Optional[int] = None
     customer_name: str
     customer_email: str
     customer_phone: str
@@ -217,4 +224,34 @@ class GalleryImage(GalleryImageBase):
 class DashboardStats(BaseModel):
     revenue: Decimal
     orders_count: int
-    # Add more stats as needed
+    new_customers: Optional[int] = 0
+    avg_order_value: Optional[float] = 0.0
+
+# Restaurant Settings Schemas
+class RestaurantSettingBase(BaseModel):
+    name: str = "Tartuca"
+    phone: Optional[str] = "+1 (555) 123-4567"
+    email: Optional[str] = "admin@tartuca.com"
+    currency: Optional[str] = "USD ($)"
+    address: Optional[str] = "123 Culinary Avenue, Foodie City, FC 90210"
+    opening_hours: Optional[str] = "Mon-Sun: 11:00 AM - 10:00 PM"
+    delivery_fee: Optional[Decimal] = Decimal("2.99")
+    min_delivery_time: Optional[int] = 30
+    max_delivery_time: Optional[int] = 45
+
+class RestaurantSettingUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    currency: Optional[str] = None
+    address: Optional[str] = None
+    opening_hours: Optional[str] = None
+    delivery_fee: Optional[Decimal] = None
+    min_delivery_time: Optional[int] = None
+    max_delivery_time: Optional[int] = None
+
+class RestaurantSetting(RestaurantSettingBase):
+    id: int
+    class Config:
+        from_attributes = True
+

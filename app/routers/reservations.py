@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from .. import crud, schemas, database, models
-from .auth import get_current_user
+from .auth import get_current_user, get_current_user_optional
 
 router = APIRouter(
     prefix="/api/reservations",
@@ -10,13 +10,23 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=schemas.Reservation)
-def create_reservation(reservation: schemas.ReservationCreate, db: Session = Depends(database.get_db)):
-    return crud.create_reservation(db, reservation)
+def create_reservation(
+    reservation: schemas.ReservationCreate, 
+    db: Session = Depends(database.get_db), 
+    current_user: models.User = Depends(get_current_user_optional)
+):
+    user_id = current_user.id if current_user else None
+    return crud.create_reservation(db, reservation, user_id=user_id)
+
+@router.get("/my-reservations", response_model=List[schemas.Reservation])
+def read_my_reservations(
+    db: Session = Depends(database.get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    return crud.get_user_reservations(db, user_id=current_user.id, email=current_user.email)
 
 @router.get("/", response_model=List[schemas.Reservation])
 def read_reservations(db: Session = Depends(database.get_db)):
-    # if current_user.role != "admin":
-    #      raise HTTPException(status_code=403, detail="Not authorized")
     return crud.get_reservations(db)
 
 @router.patch("/{res_id}/status", response_model=schemas.Reservation)
@@ -27,3 +37,4 @@ def update_reservation_status(res_id: int, status_update: schemas.ReservationSta
     if db_res is None:
         raise HTTPException(status_code=404, detail="Reservation not found")
     return db_res
+

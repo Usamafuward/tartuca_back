@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers import auth, menu, offers, orders, reservations, reviews, gallery, admin
+from app.routers import auth, menu, offers, orders, reservations, reviews, gallery, admin, settings
 
 # Create tables
-# Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Tartuca API", description="Backend for Tartuca Restaurant")
 
@@ -32,6 +32,8 @@ app.include_router(reservations.router)
 app.include_router(reviews.router)
 app.include_router(gallery.router)
 app.include_router(admin.router)
+app.include_router(settings.router)
+
 
 @app.get("/")
 def read_root():

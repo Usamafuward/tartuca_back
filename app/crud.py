@@ -56,6 +56,32 @@ def update_user(db: Session, user_id: int, user_update: schemas.UserUpdate):
 def get_categories(db: Session):
     return db.query(models.Category).order_by(models.Category.display_order).all()
 
+def create_category(db: Session, category: schemas.CategoryCreate):
+    db_cat = models.Category(**category.dict())
+    db.add(db_cat)
+    db.commit()
+    db.refresh(db_cat)
+    return db_cat
+
+def update_category(db: Session, category_id: int, category_update: schemas.CategoryUpdate):
+    db_cat = db.query(models.Category).filter(models.Category.id == category_id).first()
+    if not db_cat:
+        return None
+    for key, value in category_update.dict(exclude_unset=True).items():
+        setattr(db_cat, key, value)
+    db.commit()
+    db.refresh(db_cat)
+    return db_cat
+
+def delete_category(db: Session, category_id: int):
+    db_cat = db.query(models.Category).filter(models.Category.id == category_id).first()
+    if not db_cat:
+        return False
+    # Reassign or delete menu items in this category or check
+    db.delete(db_cat)
+    db.commit()
+    return True
+
 def get_menu_items(db: Session, category_id: int = None):
     query = db.query(models.MenuItem)
     if category_id:
@@ -178,8 +204,11 @@ def update_order_status(db: Session, order_id: int, status: str):
     return order
 
 # Reservations
-def create_reservation(db: Session, reservation: schemas.ReservationCreate):
-    db_res = models.Reservation(**reservation.dict())
+def create_reservation(db: Session, reservation: schemas.ReservationCreate, user_id: int = None):
+    data = reservation.dict()
+    if user_id:
+        data["user_id"] = user_id
+    db_res = models.Reservation(**data)
     db.add(db_res)
     db.commit()
     db.refresh(db_res)
@@ -187,6 +216,16 @@ def create_reservation(db: Session, reservation: schemas.ReservationCreate):
 
 def get_reservations(db: Session):
     return db.query(models.Reservation).order_by(models.Reservation.reservation_date.desc(), models.Reservation.reservation_time.desc()).all()
+
+def get_user_reservations(db: Session, user_id: int = None, email: str = None):
+    query = db.query(models.Reservation)
+    if user_id and email:
+        query = query.filter((models.Reservation.user_id == user_id) | (models.Reservation.customer_email == email))
+    elif user_id:
+        query = query.filter(models.Reservation.user_id == user_id)
+    elif email:
+        query = query.filter(models.Reservation.customer_email == email)
+    return query.order_by(models.Reservation.reservation_date.desc(), models.Reservation.reservation_time.desc()).all()
 
 def update_reservation_status(db: Session, res_id: int, status: str):
     res = db.query(models.Reservation).filter(models.Reservation.id == res_id).first()
@@ -280,5 +319,33 @@ def update_special_offer(db: Session, offer_id: int, offer_update: schemas.Speci
     db.commit()
     db.refresh(db_offer)
     return db_offer
+
+# Settings
+def get_restaurant_settings(db: Session):
+    settings = db.query(models.RestaurantSetting).first()
+    if not settings:
+        settings = models.RestaurantSetting(
+            name="Tartuca",
+            phone="+1 (555) 123-4567",
+            email="admin@tartuca.com",
+            currency="USD ($)",
+            address="123 Culinary Avenue, Foodie City, FC 90210",
+            opening_hours="Mon-Sun: 11:00 AM - 10:00 PM",
+            delivery_fee=Decimal("2.99"),
+            min_delivery_time=30,
+            max_delivery_time=45
+        )
+        db.add(settings)
+        db.commit()
+        db.refresh(settings)
+    return settings
+
+def update_restaurant_settings(db: Session, settings_update: schemas.RestaurantSettingUpdate):
+    settings = get_restaurant_settings(db)
+    for key, value in settings_update.dict(exclude_unset=True).items():
+        setattr(settings, key, value)
+    db.commit()
+    db.refresh(settings)
+    return settings
 
 

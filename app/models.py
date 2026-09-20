@@ -107,6 +107,7 @@ class Reservation(Base):
     __tablename__ = "reservations"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     customer_name = Column(String, nullable=False)
     customer_email = Column(String, nullable=False)
     customer_phone = Column(String, nullable=False)
@@ -116,6 +117,8 @@ class Reservation(Base):
     occasion = Column(String, nullable=True)
     status = Column(String, default="pending") # pending, confirmed, cancelled, completed
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
 
 class Review(Base):
     __tablename__ = "reviews"
@@ -141,3 +144,18 @@ class GalleryImage(Base):
     @property
     def has_image(self):
         return self.image_data is not None
+
+class RestaurantSetting(Base):
+    __tablename__ = "restaurant_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, default="Tartuca")
+    phone = Column(String, default="+1 (555) 123-4567")
+    email = Column(String, default="admin@tartuca.com")
+    currency = Column(String, default="USD ($)")
+    address = Column(Text, default="123 Culinary Avenue, Foodie City, FC 90210")
+    opening_hours = Column(String, default="Mon-Sun: 11:00 AM - 10:00 PM")
+    delivery_fee = Column(DECIMAL(10, 2), default=2.99)
+    min_delivery_time = Column(Integer, default=30) # in minutes
+    max_delivery_time = Column(Integer, default=45) # in minutes
+
