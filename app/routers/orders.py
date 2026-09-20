@@ -37,7 +37,27 @@ def read_order(order_id: int, db: Session = Depends(database.get_db)):
 def update_order_status(order_id: int, status_update: schemas.OrderStatusUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role != "admin":
          raise HTTPException(status_code=403, detail="Not authorized")
-    db_order = crud.update_order_status(db, order_id, status_update.status)
+    db_order = crud.get_order(db, order_id)
     if db_order is None:
         raise HTTPException(status_code=404, detail="Order not found")
-    return db_order
+
+    current_status = db_order.status
+    new_status = status_update.status
+
+    valid_statuses = {"pending", "cooking", "delivered", "cancelled"}
+    if new_status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status '{new_status}'")
+
+    if current_status == new_status:
+        return db_order
+
+    if current_status == "cancelled":
+        raise HTTPException(status_code=400, detail="Cancelled orders cannot be changed to any status")
+
+    if current_status == "cooking" and new_status == "pending":
+        raise HTTPException(status_code=400, detail="Cooking orders cannot be changed back to pending")
+
+    if current_status == "delivered" and new_status in ["pending", "cooking"]:
+        raise HTTPException(status_code=400, detail="Delivered orders cannot be changed back to pending or cooking")
+
+    return crud.update_order_status(db, order_id, new_status)
