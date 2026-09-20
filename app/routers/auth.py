@@ -8,7 +8,6 @@ import os
 # Auth handling imports
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 router = APIRouter(
     prefix="/api/auth",
