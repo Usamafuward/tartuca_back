@@ -87,6 +87,7 @@ class MenuItem(MenuItemBase):
     id: int
     created_at: datetime
     has_image: bool = False
+    category: Optional[Category] = None
     class Config:
         from_attributes = True
 
@@ -226,6 +227,16 @@ class DashboardStats(BaseModel):
     orders_count: int
     new_customers: Optional[int] = 0
     avg_order_value: Optional[float] = 0.0
+    cancelled_revenue: Optional[float] = 0.0
+    cancelled_orders: Optional[int] = 0
+    menu_stats: Optional[dict] = None
+    revenue_trend: Optional[List[dict]] = None
+    revenue_trend_14d: Optional[List[dict]] = None
+    top_items: Optional[List[dict]] = None
+    category_sales: Optional[List[dict]] = None
+    order_status_distribution: Optional[List[dict]] = None
+    reservations_summary: Optional[dict] = None
+    customer_sentiment: Optional[dict] = None
 
 # Restaurant Settings Schemas
 class RestaurantSettingBase(BaseModel):
