@@ -326,13 +326,13 @@ def get_restaurant_settings(db: Session):
     if not settings:
         settings = models.RestaurantSetting(
             name="Tartuca",
-            phone="+1 (555) 123-4567",
-            email="admin@tartuca.com",
-            currency="USD ($)",
-            address="123 Culinary Avenue, Foodie City, FC 90210",
-            opening_hours="Mon-Sun: 11:00 AM - 10:00 PM",
-            delivery_fee=Decimal("2.99"),
-            min_delivery_time=30,
+            phone="+94 11 257 4820",
+            email="info@tartuca.lk",
+            currency="LKR (Rs.)",
+            address="42 Green Path (Ananda Coomaraswamy Mw), Colombo 07, Sri Lanka",
+            opening_hours="Mon-Sun: 11:30 AM - 11:00 PM",
+            delivery_fee=Decimal("350.00"),
+            min_delivery_time=25,
             max_delivery_time=45
         )
         db.add(settings)

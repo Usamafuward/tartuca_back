@@ -17,7 +17,7 @@ router = APIRouter(
 # Configuration for JWT
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1440 # 24 hours
+ACCESS_TOKEN_EXPIRE_MINUTES = 30 # 30 minutes inactivity expiry
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="api/auth/login", auto_error=False)
