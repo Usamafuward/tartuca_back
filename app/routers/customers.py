@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.orm import Session
 from .. import crud, database, models
 from .auth import get_current_user
 from sqlalchemy import func
 from typing import Annotated, Optional
+from datetime import datetime
 from pydantic import BaseModel
 
 router = APIRouter(
@@ -15,6 +16,7 @@ class CustomerUpdateSchema(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
+    profile_picture: Optional[str] = None
 
 @router.get("")
 @router.get("/", include_in_schema=False)
@@ -53,6 +55,7 @@ def get_all_customers(
             "email": c.email,
             "phone": c.phone,
             "address": c.address,
+            "profile_picture": c.profile_picture,
             "role": c.role,
             "created_at": c.created_at.isoformat() if c.created_at else None,
             "orders_count": len(orders),
@@ -159,6 +162,7 @@ def get_customer_details(
             "email": customer.email,
             "phone": customer.phone,
             "address": customer.address,
+            "profile_picture": customer.profile_picture,
             "role": customer.role,
             "created_at": customer.created_at.isoformat() if customer.created_at else None
         },
@@ -196,6 +200,11 @@ def update_customer_info(
         customer.phone = data.phone.strip()
     if data.address is not None:
         customer.address = data.address.strip()
+    if data.profile_picture is not None:
+        val_clean = data.profile_picture.strip() if data.profile_picture else None
+        customer.profile_picture = val_clean
+        if not val_clean or not val_clean.startswith("/api/auth/users/"):
+            customer.image_data = None
 
     db.commit()
     db.refresh(customer)
@@ -204,5 +213,41 @@ def update_customer_info(
         "full_name": customer.full_name,
         "email": customer.email,
         "phone": customer.phone,
-        "address": customer.address
+        "address": customer.address,
+        "profile_picture": customer.profile_picture
+    }
+
+@router.post("/{customer_id}/avatar")
+def upload_customer_avatar(
+    customer_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    customer = db.query(models.User).filter(models.User.id == customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    contents = file.file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image must be under 5MB")
+
+    customer.image_data = contents
+    timestamp = int(datetime.utcnow().timestamp())
+    customer.profile_picture = f"/api/auth/users/{customer.id}/avatar?t={timestamp}"
+
+    db.add(customer)
+    db.commit()
+    db.refresh(customer)
+    return {
+        "id": customer.id,
+        "full_name": customer.full_name,
+        "email": customer.email,
+        "profile_picture": customer.profile_picture
     }

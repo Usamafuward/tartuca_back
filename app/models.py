@@ -13,6 +13,8 @@ class User(Base):
     role = Column(String, default="customer") # 'admin' or 'customer'
     phone = Column(String, nullable=True)
     address = Column(String, nullable=True)
+    profile_picture = Column(String, nullable=True)
+    image_data = Column(LargeBinary, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     orders = relationship("Order", back_populates="user")
@@ -124,12 +126,16 @@ class Review(Base):
     __tablename__ = "reviews"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     author_name = Column(String, nullable=False)
+    profile_picture = Column(String, nullable=True)
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=False)
     sentiment = Column(String, default="neutral")
     is_approved = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
 
 class GalleryImage(Base):
     __tablename__ = "gallery_images"

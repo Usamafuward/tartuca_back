@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Response
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from .. import crud, schemas, database, models
 from datetime import datetime, timedelta
@@ -73,6 +74,52 @@ def read_users_me(current_user: Annotated[models.User, Depends(get_current_user)
 @router.put("/me", response_model=schemas.User)
 def update_user_me(user_update: schemas.UserUpdate, current_user: Annotated[models.User, Depends(get_current_user)], db: Session = Depends(database.get_db)):
     return crud.update_user(db, user_id=current_user.id, user_update=user_update)
+
+@router.get("/users/{user_id}/avatar")
+def get_user_avatar(user_id: int, db: Session = Depends(database.get_db)):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if db_user.image_data:
+        media_type = "image/jpeg"
+        if db_user.image_data.startswith(b"\x89PNG"):
+            media_type = "image/png"
+        elif db_user.image_data.startswith(b"RIFF") and b"WEBP" in db_user.image_data[:16]:
+            media_type = "image/webp"
+        elif db_user.image_data.startswith(b"GIF8"):
+            media_type = "image/gif"
+        return Response(content=db_user.image_data, media_type=media_type)
+    
+    if db_user.profile_picture:
+        return RedirectResponse(url=db_user.profile_picture)
+        
+    raise HTTPException(status_code=404, detail="Avatar image not found")
+
+@router.post("/me/avatar", response_model=schemas.User)
+def upload_avatar_me(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    if not file:
+        raise HTTPException(status_code=400, detail="No image file provided")
+    
+    contents = file.file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+    
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image must be under 5MB")
+    
+    current_user.image_data = contents
+    timestamp = int(datetime.utcnow().timestamp())
+    current_user.profile_picture = f"/api/auth/users/{current_user.id}/avatar?t={timestamp}"
+    
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
 
 @router.post("/create-admin", response_model=schemas.User)
 def create_admin(user: schemas.UserCreate, current_user: Annotated[models.User, Depends(get_current_user)], db: Session = Depends(database.get_db)):

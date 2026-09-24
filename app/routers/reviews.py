@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from .. import crud, schemas, database, models
-from .auth import get_current_user
+from .auth import get_current_user, get_current_user_optional
 
 router = APIRouter(
     prefix="/api/reviews",
@@ -16,8 +16,12 @@ def read_reviews(db: Session = Depends(database.get_db)):
 
 @router.post("", response_model=schemas.Review)
 @router.post("/", response_model=schemas.Review, include_in_schema=False)
-def create_review(review: schemas.ReviewCreate, db: Session = Depends(database.get_db)):
-    return crud.create_review(db, review)
+def create_review(
+    review: schemas.ReviewCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    return crud.create_review(db, review, current_user=current_user)
 
 @router.get("/admin", response_model=List[schemas.Review])
 def read_all_reviews(db: Session = Depends(database.get_db)):

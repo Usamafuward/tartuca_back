@@ -3,6 +3,7 @@ from . import models, schemas
 import bcrypt
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     if not plain_password or not hashed_password:
@@ -31,6 +32,7 @@ def create_user(db: Session, user: schemas.UserCreate, role: str = "customer"):
         full_name=user.full_name,
         phone=user.phone,
         address=user.address,
+        profile_picture=user.profile_picture,
         role=role
     )
     db.add(db_user)
@@ -45,7 +47,17 @@ def update_user(db: Session, user_id: int, user_update: schemas.UserUpdate):
     
     update_data = user_update.dict(exclude_unset=True)
     for key, value in update_data.items():
-        setattr(db_user, key, value)
+        if key == "profile_picture":
+            val_clean = value.strip() if isinstance(value, str) else value
+            if not val_clean:
+                db_user.profile_picture = None
+                db_user.image_data = None
+            else:
+                db_user.profile_picture = val_clean
+                if not val_clean.startswith("/api/auth/users/"):
+                    db_user.image_data = None
+        else:
+            setattr(db_user, key, value)
     
     db.add(db_user)
     db.commit()
@@ -236,12 +248,18 @@ def update_reservation_status(db: Session, res_id: int, status: str):
     return res
 
 # Reviews
-def create_review(db: Session, review: schemas.ReviewCreate):
+def create_review(db: Session, review: schemas.ReviewCreate, current_user: Optional[models.User] = None):
     # Basic sentiment analysis placeholder
     sentiment = "positive" if review.rating >= 4 else "negative" if review.rating <= 2 else "neutral"
     
+    user_id = current_user.id if current_user else review.user_id
+    author_name = current_user.full_name if (current_user and current_user.full_name) else review.author_name
+    profile_picture = current_user.profile_picture if (current_user and current_user.profile_picture) else review.profile_picture
+
     db_review = models.Review(
-        author_name=review.author_name,
+        author_name=author_name,
+        user_id=user_id,
+        profile_picture=profile_picture,
         rating=review.rating,
         comment=review.comment,
         sentiment=sentiment,
@@ -256,7 +274,11 @@ def get_reviews(db: Session, approved_only: bool = True):
     query = db.query(models.Review)
     if approved_only:
         query = query.filter(models.Review.is_approved == True)
-    return query.order_by(models.Review.created_at.desc()).all()
+    reviews = query.order_by(models.Review.created_at.desc()).all()
+    for r in reviews:
+        if r.user and r.user.profile_picture:
+            r.profile_picture = r.user.profile_picture
+    return reviews
 
 def approve_review(db: Session, review_id: int, is_approved: bool):
     review = db.query(models.Review).filter(models.Review.id == review_id).first()
@@ -264,6 +286,8 @@ def approve_review(db: Session, review_id: int, is_approved: bool):
         review.is_approved = is_approved
         db.commit()
         db.refresh(review)
+        if review.user and review.user.profile_picture:
+            review.profile_picture = review.user.profile_picture
     return review
 
 # Gallery
