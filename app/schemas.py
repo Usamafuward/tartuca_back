@@ -40,6 +40,10 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: Optional[str] = None
 
+class GoogleAuthRequest(BaseModel):
+    credential: Optional[str] = None
+    access_token: Optional[str] = None
+
 # Category Schemas
 class CategoryBase(BaseModel):
     name: str

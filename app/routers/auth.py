@@ -9,11 +9,17 @@ import os
 # Auth handling imports
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+import requests as http_requests
 
 router = APIRouter(
     prefix="/api/auth",
     tags=["authentication"]
 )
+
+# Configuration for JWT & Google Auth
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
 
 # Configuration for JWT
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
@@ -153,3 +159,97 @@ def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Sessio
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/google", response_model=schemas.Token)
+def google_auth(payload_data: schemas.GoogleAuthRequest, db: Session = Depends(database.get_db)):
+    credential = payload_data.credential
+    access_token = payload_data.access_token
+
+    if not credential and not access_token:
+        raise HTTPException(status_code=400, detail="Missing Google credential or access token")
+
+    google_data = None
+    verification_error = None
+
+    if credential:
+        # Method 1: Verify using google-auth library
+        try:
+            target_audience = GOOGLE_CLIENT_ID if GOOGLE_CLIENT_ID else None
+            google_data = id_token.verify_oauth2_token(
+                credential,
+                google_requests.Request(),
+                target_audience
+            )
+        except Exception as e:
+            verification_error = str(e)
+
+        # Method 2: Fallback to Google tokeninfo endpoint
+        if not google_data:
+            try:
+                resp = http_requests.get(
+                    f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}",
+                    timeout=10
+                )
+                if resp.status_code == 200:
+                    google_data = resp.json()
+                    if GOOGLE_CLIENT_ID and google_data.get("aud") != GOOGLE_CLIENT_ID:
+                        raise HTTPException(
+                            status_code=401,
+                            detail="Token audience does not match configured GOOGLE_CLIENT_ID"
+                        )
+                else:
+                    raise HTTPException(
+                        status_code=401,
+                        detail=f"Google token verification failed: {resp.text}"
+                    )
+            except HTTPException:
+                raise
+            except Exception as e:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"Unable to verify Google credential: {verification_error or str(e)}"
+                )
+    elif access_token:
+        # Method 3: Fetch profile via Google UserInfo endpoint with OAuth access_token
+        try:
+            resp = http_requests.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                google_data = resp.json()
+            else:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"Failed to fetch Google profile: {resp.text}"
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=401,
+                detail=f"Unable to verify Google access token: {str(e)}"
+            )
+
+    email = google_data.get("email") if google_data else None
+    if not email:
+        raise HTTPException(status_code=400, detail="Google account does not provide an email address")
+
+    email = email.lower().strip()
+    full_name = google_data.get("name") or email.split("@")[0]
+    picture = google_data.get("picture")
+
+    user = crud.get_or_create_google_user(
+        db=db,
+        email=email,
+        full_name=full_name,
+        picture=picture
+    )
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    app_jwt = create_access_token(
+        data={"sub": user.email},
+        expires_delta=access_token_expires
+    )
+    return {"access_token": app_jwt, "token_type": "bearer"}

@@ -4,6 +4,7 @@ import bcrypt
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
+import secrets
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     if not plain_password or not hashed_password:
@@ -39,6 +40,35 @@ def create_user(db: Session, user: schemas.UserCreate, role: str = "customer"):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+def get_or_create_google_user(db: Session, email: str, full_name: str, picture: Optional[str] = None):
+    db_user = get_user_by_email(db, email=email)
+    if db_user:
+        updated = False
+        if picture and not db_user.profile_picture and not db_user.image_data:
+            db_user.profile_picture = picture
+            updated = True
+        if not db_user.full_name and full_name:
+            db_user.full_name = full_name
+            updated = True
+        if updated:
+            db.commit()
+            db.refresh(db_user)
+        return db_user
+
+    random_password = secrets.token_urlsafe(32)
+    hashed_password = get_password_hash(random_password)
+    new_user = models.User(
+        email=email,
+        password_hash=hashed_password,
+        full_name=full_name or email.split("@")[0],
+        profile_picture=picture,
+        role="customer"
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
 
 def update_user(db: Session, user_id: int, user_update: schemas.UserUpdate):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
