@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional
 from datetime import datetime, date, time
 from decimal import Decimal
@@ -12,7 +12,7 @@ class UserBase(BaseModel):
     profile_picture: Optional[str] = None
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(..., min_length=6, max_length=128)
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -130,7 +130,7 @@ class SpecialOffer(SpecialOfferBase):
 class OrderItemBase(BaseModel):
     menu_item_id: Optional[int] = None
     special_offer_id: Optional[int] = None
-    quantity: int
+    quantity: int = Field(1, ge=1, le=100)
 
 class OrderItemCreate(OrderItemBase):
     pass
@@ -144,15 +144,15 @@ class OrderItem(OrderItemBase):
         from_attributes = True
 
 class OrderBase(BaseModel):
-    customer_name: str
-    customer_email: Optional[str] = None
-    customer_phone: str
-    delivery_address: str
-    delivery_instructions: Optional[str] = None
-    payment_method: str
+    customer_name: str = Field(..., min_length=2, max_length=100)
+    customer_email: Optional[EmailStr] = None
+    customer_phone: str = Field(..., min_length=5, max_length=30)
+    delivery_address: str = Field(..., min_length=3, max_length=300)
+    delivery_instructions: Optional[str] = Field(None, max_length=500)
+    payment_method: str = Field(..., min_length=2, max_length=50)
 
 class OrderCreate(OrderBase):
-    items: List[OrderItemCreate]
+    items: List[OrderItemCreate] = Field(..., min_items=1)
 
 class OrderStatusUpdate(BaseModel):
     status: str
@@ -170,13 +170,13 @@ class Order(OrderBase):
 # Reservation Schemas
 class ReservationBase(BaseModel):
     user_id: Optional[int] = None
-    customer_name: str
-    customer_email: str
-    customer_phone: str
-    party_size: int
+    customer_name: str = Field(..., min_length=2, max_length=100)
+    customer_email: EmailStr
+    customer_phone: str = Field(..., min_length=5, max_length=30)
+    party_size: int = Field(1, ge=1, le=50)
     reservation_date: date
     reservation_time: time
-    occasion: Optional[str] = None
+    occasion: Optional[str] = Field(None, max_length=100)
 
 class ReservationCreate(ReservationBase):
     pass
@@ -193,9 +193,9 @@ class Reservation(ReservationBase):
 
 # Review Schemas
 class ReviewBase(BaseModel):
-    author_name: str
-    rating: int
-    comment: str
+    author_name: str = Field(..., min_length=1, max_length=100)
+    rating: int = Field(5, ge=1, le=5)
+    comment: str = Field(..., min_length=1, max_length=1000)
     profile_picture: Optional[str] = None
     user_id: Optional[int] = None
 

@@ -205,6 +205,9 @@ def create_order(db: Session, order: schemas.OrderCreate, user_id: int = None):
                 "unit_price": price
             })
 
+    if not order_items_data:
+        raise ValueError("Order must contain at least one valid item from the menu or special offers")
+
     db_order = models.Order(
         user_id=user_id,
         customer_name=order.customer_name,

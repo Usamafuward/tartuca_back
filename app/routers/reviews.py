@@ -24,9 +24,9 @@ def create_review(
     return crud.create_review(db, review, current_user=current_user)
 
 @router.get("/admin", response_model=List[schemas.Review])
-def read_all_reviews(db: Session = Depends(database.get_db)):
-    # if current_user.role != "admin":
-    #      raise HTTPException(status_code=403, detail="Not authorized")
+def read_all_reviews(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
     return crud.get_reviews(db, approved_only=False)
 
 @router.patch("/{review_id}/approve", response_model=schemas.Review)

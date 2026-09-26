@@ -36,11 +36,17 @@ def create_gallery_image(
     alt_text: str = Form(...),
     image_url: Optional[str] = Form(None),
     image: UploadFile = File(None),
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     image_data = None
     if image:
         image_data = image.file.read()
+        if len(image_data) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Image must be under 5MB")
     
     img = schemas.GalleryImageCreate(
         category=category,
@@ -50,9 +56,13 @@ def create_gallery_image(
     return crud.create_gallery_image(db, img, image_data)
 
 @router.delete("/{img_id}")
-def delete_gallery_image(img_id: int, db: Session = Depends(database.get_db)):
-    # if current_user.role != "admin":
-    #      raise HTTPException(status_code=403, detail="Not authorized")
+def delete_gallery_image(
+    img_id: int, 
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
     success = crud.delete_gallery_image(db, img_id)
     if not success:
         raise HTTPException(status_code=404, detail="Image not found")

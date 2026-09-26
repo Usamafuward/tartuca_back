@@ -16,18 +16,24 @@ def read_categories(db: Session = Depends(database.get_db)):
     return crud.get_categories(db)
 
 @router.post("/categories", response_model=schemas.Category)
-def create_category(category: schemas.CategoryCreate, db: Session = Depends(database.get_db)):
+def create_category(category: schemas.CategoryCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
     return crud.create_category(db, category)
 
 @router.put("/categories/{category_id}", response_model=schemas.Category)
-def update_category(category_id: int, category_update: schemas.CategoryUpdate, db: Session = Depends(database.get_db)):
+def update_category(category_id: int, category_update: schemas.CategoryUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
     cat = crud.update_category(db, category_id, category_update)
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
     return cat
 
 @router.delete("/categories/{category_id}")
-def delete_category(category_id: int, db: Session = Depends(database.get_db)):
+def delete_category(category_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
     success = crud.delete_category(db, category_id)
     if not success:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -69,11 +75,17 @@ def create_menu_item(
     is_vegetarian: bool = Form(False),
     is_gluten_free: bool = Form(False),
     image: UploadFile = File(None),
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     image_data = None
     if image:
         image_data = image.file.read()
+        if len(image_data) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Image must be under 5MB")
     
     item = schemas.MenuItemCreate(
         name=name,
@@ -88,9 +100,13 @@ def create_menu_item(
     return crud.create_menu_item(db, item, image_data)
 
 @router.delete("/menu-items/{item_id}")
-def delete_menu_item(item_id: int, db: Session = Depends(database.get_db)):
-    # if current_user.role != "admin":
-    #      raise HTTPException(status_code=403, detail="Not authorized")
+def delete_menu_item(
+    item_id: int, 
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
     success = crud.delete_menu_item(db, item_id)
     if not success:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -108,11 +124,17 @@ def update_menu_item(
     is_vegetarian: Optional[bool] = Form(None),
     is_gluten_free: Optional[bool] = Form(None),
     image: UploadFile = File(None),
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     image_data = None
     if image:
         image_data = image.file.read()
+        if len(image_data) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Image must be under 5MB")
     
     update_fields = {}
     if name is not None: update_fields['name'] = name

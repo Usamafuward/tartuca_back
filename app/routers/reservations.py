@@ -28,7 +28,9 @@ def read_my_reservations(
 
 @router.get("", response_model=List[schemas.Reservation])
 @router.get("/", response_model=List[schemas.Reservation], include_in_schema=False)
-def read_reservations(db: Session = Depends(database.get_db)):
+def read_reservations(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
     return crud.get_reservations(db)
 
 @router.patch("/{res_id}/status", response_model=schemas.Reservation)
