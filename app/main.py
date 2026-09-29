@@ -32,7 +32,7 @@ allowed_origins = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
     "http://127.0.0.1:3000",
-    "https://tartuca.vercel.app"
+    "https://tartuca.vercel.app",
     "https://tartuca-user.vercel.app",
     "https://tartuca-admin.vercel.app",
 ]
